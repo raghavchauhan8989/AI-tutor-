@@ -4,18 +4,17 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
-from langchain_openai import ChatOpenAI
+from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, SystemMessage
 
 load_dotenv()
-
+os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
 app = FastAPI()
 
 embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 vectordb = Chroma(persist_directory="./chroma_db", embedding_function=embeddings)
 retriever = vectordb.as_retriever(search_kwargs={"k": 3})
-llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.3, openai_api_key=os.getenv("OPENAI_API_KEY"))
-
+llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0.3)
 sessions = {}
 
 class QuestionRequest(BaseModel):
