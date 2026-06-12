@@ -56,3 +56,40 @@ def ask_question(request: QuestionRequest):
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+class QuizRequest(BaseModel):
+    topic: str
+    session_id: str = "default"
+
+@app.post("/quiz")
+def generate_quiz(request: QuizRequest):
+    docs = retriever.invoke(request.topic)
+    context = "\n\n".join([doc.page_content for doc in docs])
+    
+    prompt = f"""Based on the following context, generate exactly 5 multiple choice questions about "{request.topic}".
+
+Context:
+{context}
+
+Return ONLY a JSON array like this:
+[
+  {{
+    "question": "Question text here?",
+    "options": ["A) option1", "B) option2", "C) option3", "D) option4"],
+    "answer": "A) option1"
+  }}
+]
+Return only the JSON array, nothing else."""
+
+    messages = [HumanMessage(content=prompt)]
+    response = llm.invoke(messages)
+    
+    import json
+    try:
+        clean = response.content.strip().replace("```json", "").replace("```", "")
+        questions = json.loads(clean)
+    except:
+        questions = response.content
+    
+    return {"topic": request.topic, "questions": questions}
